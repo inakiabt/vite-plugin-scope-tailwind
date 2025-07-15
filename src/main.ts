@@ -39,9 +39,23 @@ const plugin = ({
         postcss: {
           plugins: [
             ...currentPostCssPlugins,
-            ...postCssPluginsToArray(postCssConfigFile).map((f) =>
-              require(path.join(process.cwd(), "node_modules", f)),
-            ),
+            ...postCssPluginsToArray(postCssConfigFile).map((f) => {
+              // Handle Tailwind v4 PostCSS plugin location change
+              if (f === "tailwindcss") {
+                try {
+                  // Try the new v4 plugin location first
+                  return require(require.resolve("tailwindcss/plugin", { paths: [process.cwd()] }));
+                } catch (e) {
+                  // Fallback to the old v3 location for backwards compatibility
+                  try {
+                    return require(require.resolve("tailwindcss", { paths: [process.cwd()] }));
+                  } catch (e2) {
+                    return require(path.join(process.cwd(), "node_modules", f));
+                  }
+                }
+              }
+              return require(path.join(process.cwd(), "node_modules", f));
+            }),
             prefixPlugin({ prefix: id, ignore }),
           ],
         },
